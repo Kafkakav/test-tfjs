@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta http-equiv="Expires" content="0">
+  <link rel="icon" href="/favicon.ico">
+  <title>tfjs test</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"> </script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"> </script>
+</head>
+<body>
+  <h3>Hello World</h3>
+  <img id="img" src=""/>
+
+</body>
+
+<script>
+  const img = document.getElementById('img');
+  cocoSsd.load().then(model => {
+    // detect objects in the image.
+    model.detect(img).then(predictions => {
+      console.log('Predictions: ', predictions);
+    });
+  });
+</script>
+
+</html>
+
+
