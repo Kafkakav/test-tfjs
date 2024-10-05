@@ -42,6 +42,12 @@ build/Release
 node_modules/
 jspm_packages/
 
+model_kaggle/
+app-tfjs/node_modules
+app-tfjs/dist
+app-tfjs/bak
+app-tfjs/.vscode
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
@@ -78,6 +84,8 @@ web_modules/
 .env.test.local
 .env.production.local
 .env.local
+
+.DS_Store
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -128,3 +136,15 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+*.tsbuildinfo

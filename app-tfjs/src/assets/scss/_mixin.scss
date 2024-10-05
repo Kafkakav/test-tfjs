@@ -1,0 +1,170 @@
+// 字型
+$main-font: "Noto Sans TC", "Helvetica Neue", "PingFang TC", "Heiti TC", "Adobe 繁黑體 Std", "AdobeFanHeitiStd-Bold",
+  "微軟正黑體", sans-serif;
+
+// 字級
+$font-size-thin: 0.65rem;
+$font-size-light: 0.85rem;
+$font-size-regular: 1.0rem;
+$font-size-medium: 1.2rem;
+$font-size-bold: 1.4rem;
+$font-size-black: 1.6rem;
+
+// 字重
+$font-weight-thin: 100;
+$font-weight-light: 300;
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+$font-weight-black: 900;
+
+// 基本色彩
+$color-white: #ffffff;
+$color-black: #000000;
+$color-green: #1db494;
+$color-yellow: #fedc19;
+$color-orange: #ff9900;
+$color-red: #e80012;
+$color-brown: #a86454;
+$color-blue: #0063ff;
+$color-blue-light: #409eff;
+$color-pink: #d0104c;
+$color-gray-thin: #dbdbdb;
+$color-gray-light: #b3b3b3;
+$color-gray: #687885;
+$color-gray-medium: #343c42;
+$color-gray-deep: #181818;
+
+// 功能區域色彩
+$color-main: $color-blue;
+$color-site-bg: #fefefe;
+
+$color-nav-side-bg: $color-white;
+$color-nav-top-bg: $color-nav-side-bg;
+$color-nav-link: $color-gray;
+$color-nav-link-hover: $color-main;
+$color-nav-link-popover: $color-gray-medium;
+
+$color-area-bg: $color-white;
+$color-area-title: $color-black;
+$color-table-bg: $color-area-bg;
+$color-form-bg: $color-area-bg;
+$color-pop-bg: $color-white;
+
+// 功能色彩
+$color-button: $color-main;
+$color-input-placeholder: $color-gray;
+$color-input-icon: $color-input-placeholder;
+$color-hr: rgba(0, 0, 0, 0.25);
+
+// 陰影效果
+$box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+
+// 邊框
+$border-radius: 0.5rem;
+$border-radius-round: 99em;
+$border-input: 1px solid $color-gray;
+$border-title-header: 1px solid $color-gray-deep;
+$border-line: 1px solid $color-hr;
+
+// 層級
+$layer-lv0: -1;
+$layer-lv1: 5;
+$layer-lv2: 10;
+$layer-lv3: 100;
+$layer-lv4: 150; // <Cart>
+$layer-lv5: 200; // <FoodsTabs>.navbar-top, <AreaLoadingNotify>
+$layer-lv6: 250; // <FoodsTabs>.tabs <PreOrderSelector>
+$layer-lv7: 300; // <Modal>
+$layer-lv8: 400;
+$layer-lv9: 500;
+
+// 動畫
+$transition-fast: all 0.3s ease-in-out;
+$transition-normal: all 0.5s ease-in-out;
+$transition-slow: all 0.7s ease-in-out;
+
+// 區塊功能
+//$grid-gap: 1.25rem;
+$grid-gap: 0.8rem;
+$grid-gap-m: 0.4rem;
+$grid-gap-mobile: 5vw; // 網格間隔
+$grid-width: calc(calc(1920px - calc(#{$grid-gap}* 21)) / 20); // 單一格寬度
+
+$navbar-height: 3rem;
+$navbar-meun-left-width: calc(#{$grid-width}* 2 + #{$grid-gap});
+$footer-height: $navbar-height;
+
+// 斷點
+@mixin breakpoint-xxl() {
+  @media (max-width: 1400px) {
+    @content;
+  }
+}
+
+@mixin breakpoint-xl() {
+  @media (max-width: 1200px) {
+    @content;
+  }
+}
+
+@mixin breakpoint-lg() {
+  @media (max-width: 992px) {
+    @content;
+  }
+}
+
+@mixin breakpoint-md() {
+  @media (max-width: 768px) {
+    @content;
+  }
+}
+
+@mixin breakpoint-sm() {
+  @media (max-width: 576px) {
+    @content;
+  }
+}
+
+@mixin breakpoint-esm() {
+  @media (max-width: 320px) {
+    @content;
+  }
+}
+
+// 常用設定
+@mixin fixed-object() {
+  position: fixed;
+  -webkit-overflow-scrolling: touch;
+}
+
+@mixin list-style() {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@mixin link-style() {
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: none;
+    @content;
+  }
+}
+
+@mixin flex-arrangement($number) {
+  //width: calc(calc(100% - #{$grid-gap}* #{$number - 1}) / #{$number});
+  width: calc(calc(100% - #{$grid-gap} * #{$number - 0}) / #{$number});
+  margin-right: $grid-gap;
+
+  &:nth-of-type(#{$number}n),
+  &:last-of-type {
+    margin-right: 0;
+  }
+
+  &:nth-of-type(n + #{$number + 1}) {
+    margin-top: $grid-gap;
+  }
+}
