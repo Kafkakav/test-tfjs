@@ -1,7 +1,16 @@
 <template>
 <div class="common-layout">
-  <el-row class="padm1">
-    <el-col :span="12">
+  <el-row>
+    <el-col :span="24">
+      <el-radio-group v-model="srcImageFrame">
+      <el-radio value="pic" size="large">上傳圖片</el-radio>
+      <el-radio value="cam" size="large">Livecam</el-radio>
+    </el-radio-group>
+    </el-col>
+  </el-row>  
+
+  <el-row class="padm1" v-if="srcImageFrame=='pic'">
+    <el-col :span="24">
       <el-upload
         class="avatar-uploader"
         action="#"
@@ -14,6 +23,21 @@
         <el-icon v-else class="avatar-uploader-icon"><icon-ep-plus /></el-icon>
       </el-upload>
       <div>請選擇圖片</div>
+    </el-col>
+  </el-row>
+
+  <el-row v-if="srcImageFrame=='cam'">
+    <el-col :span="24">
+
+      <div style="margin: 10px 0;">
+        <el-button type="primary" round style="width:200px;" @click="open_camera">開啟camera</el-button>
+        <el-button type="primary" round style="width:200px;" @click="close_camera">關閉camera</el-button>
+      </div>
+    </el-col>
+  </el-row>
+
+  <el-row>
+    <el-col :span="24">
       <div style="margin: 10px 0;">
         <el-select v-model="selectedModel" placeholder="Select" style="width: 240px">
           <el-option v-for="item in modelOptions"
@@ -24,12 +48,19 @@
         </el-select>
       </div>
       <div style="margin: 10px 0;">
-        <el-button type="primary" round style="width:200px;" @click="canvas_image_onload">辨識</el-button>
+        <el-button type="primary" round style="width:200px;" @click="canvas_image_onload">圖片辨識</el-button>
       </div>
-    </el-col>
-    <el-col :span="12">
       <canvas ref="refCanvas"></canvas>
       <div><pre style="text-align: left;">{{ predictResults }}</pre></div>
+
+      <video ref="refVideo" playsinline style="
+          -webkit-transform: scaleX(-1);
+          transform: scaleX(-1);
+          visibility: hidden;
+          width: auto;
+          height: auto;">
+      </video>
+
     </el-col>
   </el-row>
 
@@ -59,20 +90,23 @@ let modelHandDetector = null;
 let modelCocoSSD = null;
 //let modelFaceLMD = null; // Face Landmark Detection
 const modelOptions = ref([
-  {label:"MobileNet", value:"MobileNet", loadmodel:loadmodel_mobilenet, predict:predict_mobilenet},
-  {label:"Coco-SSD", value:"CocoSSD",    loadmodel:loadmodel_cocossd, predict:predict_cocossd},
-  {label:"MediaPipe Hands", value:"Hand", loadmodel:loadmodel_hand, predict:predict_hand},
+  {label:"MobileNet 圖片分類", value:"MobileNet", loadmodel:loadmodel_mobilenet, predict:predict_mobilenet},
+  {label:"Coco-SSD 物件辨識", value:"CocoSSD",    loadmodel:loadmodel_cocossd, predict:predict_cocossd},
+  {label:"MediaPipe Hands 手勢辨識", value:"Hand", loadmodel:loadmodel_hand, predict:predict_hand},
   //{label:"Mediapipe Pose", value:"Pose", loadmodel:loadmodel_pose, predict:predict_pose},
   //{label:"Mediapipe Face Landmark", value:"FaceLMD", loadmodel:loadmodel_facelm, predict:predict_facelm},
 ]);
 
+const srcImageFrame = ref('pic')
 const imageUrl = ref('')
 const refImage = ref(null)
-const refCanvas = ref(null);
+const refVideo = ref(null)
+const refCanvas = ref(null)
 let ctxCanvas;
 const mirrorImage = ref(1)
 const predictResults = ref("");
 const selectedModel = ref("MobileNet");
+let myCam = undefined;
 
 function find_model_option(selModel) {
   for(let i=0; i< modelOptions.value.length; i++) {
@@ -98,14 +132,24 @@ const beforeImageUpload = (rawFile) => {
   if (rawFile.type !== 'image/jpeg' && rawFile.type !== 'image/png' && rawFile.type !== 'image/bmp') {
     ElMessage.error('圖片只支援 JPG, PNG 格式!')
     return false
-  } else if (rawFile.size / 1024 / 1024 > 2) { // 2MB
-    ElMessage.error('圖片大小不能超過2MB!')
+  } else if (rawFile.size / 1024 / 1024 > 5) { // 5MB
+    ElMessage.error('圖片大小不能超過5MB!')
     return false
   }
   return true
 }
 
 const canvas_image_onload = () => {
+
+  if(srcImageFrame.value == 'cam') {
+    predictResults.value = "";
+    loadModel(selectedModel.value).then(async () => {
+      predictResults.value = "模型載入成功";    
+    })
+
+    return
+  }
+
   ctxCanvas = refCanvas.value.getContext("2d");
   if(!refImage.value) return;
 
@@ -115,10 +159,11 @@ const canvas_image_onload = () => {
 
   refCanvas.value.setAttribute("width", refImage.value.width*ratio);
   refCanvas.value.setAttribute("height", refImage.value.height*ratio);
+  ctxCanvas.clearRect(0, 0, refCanvas.value.width, refCanvas.value.height);
 
   let centerShift_x = Math.floor(( refCanvas.value.width - refImage.value.width*ratio ) / 2);
-  let centerShift_y = Math.floor(( refCanvas.value.height - refImage.value.height*ratio ) / 2);  
-  ctxCanvas.clearRect(0, 0, refCanvas.value.width, refCanvas.value.height);
+  let centerShift_y = Math.floor(( refCanvas.value.height - refImage.value.height*ratio ) / 2);
+
   //console.log("canvas_image_onload: ratio=", ratio)
   //console.log("canvas_image_onload: W x H=", refCanvas.value.width, refCanvas.value.height)
 
@@ -131,6 +176,7 @@ const canvas_image_onload = () => {
     ctxCanvas.scale(-1, 1);
     //ctxCanvas.drawImage(refImage.value, 0, 0, refImage.value.width, refImage.value.height);
     ctxCanvas.drawImage(refImage.value, centerShift_x, centerShift_y, refCanvas.value.width, refCanvas.value.height); 
+  
     // resets the transformation matrix of the canvas to its default state
     ctxCanvas.setTransform(1, 0, 0, 1, 0, 0);
   }
@@ -158,6 +204,9 @@ async function loadmodel_mobilenet() {
   return Promise.resolve(modelMobileNet);
 }
 async function predict_mobilenet(canvas) {
+  if(!modelMobileNet) return;
+  predictResults.value = "辨識中...";
+
   // Classify the image.
   const predictions = await modelMobileNet.classify(canvas);
   //console.log('Predictions');
@@ -199,6 +248,10 @@ async function loadmodel_cocossd() {
 }
 
 async function predict_cocossd(canvas) {
+  if(!modelCocoSSD) return;
+  predictResults.value = "辨識中...";
+
+
   modelCocoSSD.detect(canvas).then(Predictions => {    
     let sz = (canvas.width > canvas.height)?canvas.width:canvas.height;
     let context = canvas.getContext("2d");
@@ -251,6 +304,9 @@ async function loadmodel_hand() {
   return Promise.resolve(modelHandDetector);
 }
 async function predict_hand(canvas) {
+  if(!modelHandDetector) return;
+  predictResults.value = "辨識中...";
+
   let context = canvas.getContext("2d");
   let doHandMathChecked = 1;
   const estimationConfig = {flipHorizontal: false};
@@ -319,14 +375,18 @@ async function predict_hand(canvas) {
 ******************************************************************************************** */
 async function loadModel(selModel) {
   let modelOp = find_model_option(selModel)
-  if(!modelOp) Promise.reject(null);
-
+  if(!modelOp) {
+    Promise.reject(null);
+    return;
+  }
   return await modelOp.loadmodel()
 }
 async function predictImage(selModel) {
   let modelOp = find_model_option(selModel)
-  if(!modelOp) Promise.reject(null);
-  predictResults.value = "辨識中...";
+  if(!modelOp) {
+    Promise.reject(null);
+    return;
+  }
   await modelOp.predict(refCanvas.value)
 }
 
@@ -431,6 +491,163 @@ onMounted(() => {
 onBeforeUnmount(() => {
   //console.log("app.onMounted")
 })
+
+async function timer_camera(cam) {
+  if(!myCam) return;
+
+  cam.drawCtx();
+  await predictImage(selectedModel.value);
+  setTimeout(timer_camera, 100, cam)
+}
+
+function open_camera() {
+  if(myCam) return;
+
+  MyCamera.setupCamera().then(function(cam){
+    myCam = cam;
+    setTimeout(timer_camera, 100, myCam)
+  }).catch(function(err){
+    console.log('open_camera Error:', err.message, err.name);
+  });
+}
+
+function close_camera() {
+  if(!myCam) return;
+  MyCamera.close_stream(myCam)
+  myCam = undefined;
+}
+
+class MyCamera {
+
+  constructor() {
+    this.video = refVideo.value;
+    this.canvas = refCanvas.value;
+    this.ctx = this.canvas.getContext('2d');
+    this.stream = undefined;
+  }
+
+  static get_camparams(type) {
+    if(type == "VIDEO_SIZE") {
+      return {
+        VIDEO_SIZE: {
+          '640 X 480': {width: 640, height: 480},
+          '640 X 360': {width: 640, height: 360},
+          '360 X 270': {width: 360, height: 270}
+        }
+      };
+    }
+    else if(type == "STATE") {
+      const STATE = {
+        camera: {targetFPS: 30, sizeOption: '640 X 480'},
+        backend: '',
+        flags: {},
+        modelConfig: {}
+      }
+      return STATE;
+    }
+    return null;
+  }
+  static isMobile() {
+    return true;
+  }
+
+  static close_stream(cam) {
+    // 將所有的 MediaStreamTrack 都關閉
+    cam.stream.getTracks().forEach(function(track) {
+      track.stop();
+    })
+    cam.stream = undefined;
+    //cam.video.srcObject = null; 
+  }
+
+  static async setupCamera(cameraParam) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error(
+          'Browser API navigator.mediaDevices.getUserMedia not available');
+    }
+    const params = MyCamera.get_camparams("VIDEO_SIZE");
+    if(!cameraParam) {
+      cameraParam = MyCamera.get_camparams("STATE");
+    }
+
+    const {targetFPS, sizeOption} = cameraParam;
+    const _size = params.VIDEO_SIZE[sizeOption];
+    const videoConfig = {
+      'audio': false,
+      'video': {
+        facingMode: 'user',
+        // Only setting the video to a specified size for large screen, on
+        // mobile devices accept the default size.
+        width: MyCamera.isMobile() ? params.VIDEO_SIZE['360 X 270'].width : _size.width,
+        height: MyCamera.isMobile() ? params.VIDEO_SIZE['360 X 270'].height : _size.height,
+        frameRate: {
+          ideal: targetFPS,
+        }
+      }
+    };
+
+    const stream = await navigator.mediaDevices.getUserMedia(videoConfig);
+    const camera = new MyCamera();
+    camera.video.srcObject = stream;
+    camera.stream = stream;
+
+    await new Promise((resolve) => {
+      camera.video.onloadedmetadata = (event) => {
+        resolve(event);
+      };
+    });
+
+    camera.video.play();
+
+    const videoWidth = camera.video.videoWidth;
+    const videoHeight = camera.video.videoHeight;
+    // Must set below two lines, otherwise video element doesn't show.
+    camera.video.width = videoWidth;
+    camera.video.height = videoHeight;
+
+    camera.canvas.width = videoWidth;
+    camera.canvas.height = videoHeight;
+
+    //const canvasContainer = document.querySelector('.canvas-wrapper');
+    //canvasContainer.style = `width: ${videoWidth}px; height: ${videoHeight}px`;
+
+    // Because the image from camera is mirrored, need to flip horizontally.
+    //camera.ctx.translate(camera.video.videoWidth, 0);
+    //camera.ctx.scale(-1, 1);
+/*
+    for (const ctxt of [scatterGLCtxtLeftHand, scatterGLCtxtRightHand]) {
+      ctxt.scatterGLEl.style =
+          `width: ${videoWidth / 2}px; height: ${videoHeight / 2}px;`;
+      ctxt.scatterGL.resize();
+
+      ctxt.scatterGLEl.style.display =
+          params.STATE.modelConfig.render3D ? 'inline-block' : 'none';
+    }
+*/
+    console.log("setupCamera:", camera.video.srcObject);
+    return camera;
+  }
+
+  // take a picture
+  drawCtx() {
+    this.ctx.translate(refCanvas.value.width, 0);
+    this.ctx.scale(-1, 1);
+    this.ctx.drawImage(
+      this.video, 0, 0, this.video.videoWidth, this.video.videoHeight);
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  clearCtx() {
+    this.ctx.clearRect(0, 0, this.video.videoWidth, this.video.videoHeight);
+  }
+
+  drawImage(img) {
+    this.ctx.drawImage(
+      img, 0, 0, this.video.videoWidth, this.video.videoHeight);
+  }
+
+}
+
 </script>
 
 <style scoped>

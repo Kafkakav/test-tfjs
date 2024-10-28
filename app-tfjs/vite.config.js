@@ -14,6 +14,10 @@ import Icons from 'unplugin-icons/vite'
 // https://vitejs.dev/config/
 export default defineConfig({
   base: "/test-tfjs",
+  server: {
+    host: "localhost",
+    port: 5173,
+  },
   plugins: [
     vue(),
     vueJsx(),
