@@ -1,0 +1,106 @@
+body {
+  font-family: "Noto Sans TC", "Helvetica Neue", "PingFang TC", "Heiti TC", "Adobe 繁黑體 Std", "AdobeFanHeitiStd-Bold",
+  "微軟正黑體", sans-serif;
+  margin: 2em;
+  color: #3d3d3d;
+  --mdc-theme-primary: #007f8b;
+  --mdc-theme-on-primary: #f1f3f4;
+}
+
+video {
+  clear: both;
+  display: block;
+  transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
+  -moz-transform: rotateY(180deg);
+}
+
+section {
+  opacity: 1;
+  transition: opacity 500ms ease-in-out;
+}
+
+.videoView,
+.detectOnClick {
+  position: relative;
+  float: left;
+  width: 48%;
+  margin: 2% 1%;
+  cursor: pointer;
+}
+
+.videoView p,
+.detectOnClick p {
+  position: absolute;
+  padding: 5px;
+  background-color: #007f8b;
+  color: #fff;
+  border: 1px dashed rgba(255, 255, 255, 0.7);
+  z-index: 2;
+  font-size: 12px;
+  margin: 0;
+}
+
+.canvas {
+  z-index: 1;
+  position: absolute;
+  pointer-events: none;
+}
+
+.output_canvas {
+  transform: rotateY(180deg);
+  -webkit-transform: rotateY(180deg);
+  -moz-transform: rotateY(180deg);
+}
+
+.header {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+    padding: 1rem 0;
+    text-align: center;
+    align-items: center;
+  }
+  
+  .header .logo {
+    -webkit-border-radius: 50%;
+    -moz-border-radius: 50%;
+    -ms-border-radius: 50%;
+    -o-border-radius: 50%;
+    border-radius: 50%;
+  }
+  
+  .header .hitem {
+    margin: 0 1rem;
+    font-weight: var(--font-size-bold); /* 假設 $font-size-bold 被轉換為 CSS 變數 */
+    font-size: var(--font-weight-bold); /* 假設 $font-weight-bold 被轉換為 CSS 變數 */
+  }
+  
+  .menuBtn {
+    background-color: white;
+    color: black;
+    border: 2px solid #e7e7e7;
+    padding: 8px 8px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    transition-duration: 0.4s;
+    cursor: pointer;
+  }
+  .menuBtn:hover {background-color: #e7e7e7;}
+
+  .menuDisable {
+    background-color: #e7e7e7;
+    cursor: auto;
+  }
+
+  .card-title-custom {
+    background-color: #0d6efd;
+    color: white;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0;
+    border-radius: 0.375rem 0.375rem 0 0;
+  }

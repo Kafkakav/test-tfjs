@@ -2,7 +2,7 @@
 <div class="common-layout">
   <el-row>
     <el-col :span="24">
-      <el-radio-group v-model="srcImageFrame">
+      <el-radio-group v-model="srcImageFrame" @change="handleInputChange">
       <el-radio value="pic" size="large">上傳圖片</el-radio>
       <el-radio value="cam" size="large">Livecam</el-radio>
     </el-radio-group>
@@ -26,9 +26,22 @@
     </el-col>
   </el-row>
 
+  <el-row class="padm1" v-if="srcImageFrame=='cam'">
+    <el-col :span="24">
+      <div style="margin: 10px 0;">
+        <el-select v-model="selectedCameraIdx" placeholder="Select Camera" style="width: 240px">
+          <el-option v-for="item in CameraList"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+      </div>
+    </el-col>
+  </el-row>
+
   <el-row v-if="srcImageFrame=='cam'">
     <el-col :span="24">
-
       <div style="margin: 10px 0;">
         <el-button type="primary" round style="width:200px;" @click="open_camera">開啟camera</el-button>
         <el-button type="primary" round style="width:200px;" @click="close_camera">關閉camera</el-button>
@@ -39,7 +52,7 @@
   <el-row>
     <el-col :span="24">
       <div style="margin: 10px 0;">
-        <el-select v-model="selectedModel" placeholder="Select" style="width: 240px">
+        <el-select v-model="selectedModel" placeholder="Select Model" style="width: 240px">
           <el-option v-for="item in modelOptions"
             :key="item.value"
             :label="item.label"
@@ -76,7 +89,6 @@
 
 </div>
 
-
 </template>
 
 <script setup>
@@ -86,15 +98,17 @@ import { ElMessage } from 'element-plus'
 
 let modelMobileNet = null;
 let modelHandDetector = null;
-//let modelPose = null;
+let modelPoseDetector  = null;
 let modelCocoSSD = null;
 //let modelFaceLMD = null; // Face Landmark Detection
 const modelOptions = ref([
   {label:"MobileNet 圖片分類", value:"MobileNet", loadmodel:loadmodel_mobilenet, predict:predict_mobilenet},
   {label:"Coco-SSD 物件辨識", value:"CocoSSD",    loadmodel:loadmodel_cocossd, predict:predict_cocossd},
   {label:"MediaPipe Hands 手勢辨識", value:"Hand", loadmodel:loadmodel_hand, predict:predict_hand},
-  //{label:"Mediapipe Pose", value:"Pose", loadmodel:loadmodel_pose, predict:predict_pose},
-  //{label:"Mediapipe Face Landmark", value:"FaceLMD", loadmodel:loadmodel_facelm, predict:predict_facelm},
+]);
+
+const CameraList = ref([
+  {label:"No Camera found", value:0},
 ]);
 
 const srcImageFrame = ref('pic')
@@ -106,6 +120,7 @@ let ctxCanvas;
 const mirrorImage = ref(1)
 const predictResults = ref("");
 const selectedModel = ref("MobileNet");
+const selectedCameraIdx = ref(null);
 let myCam = undefined;
 
 function find_model_option(selModel) {
@@ -348,26 +363,6 @@ async function predict_hand(canvas) {
     //predictResults.value = "無法辨識";
   });
 }
-/* ********************************************************************************************
-*
-*
-******************************************************************************************** */
-//async function loadmodel_pose() {
-//  console.log("in")
-//}
-//async function predict_pose() {
-//  console.log("in")
-//}
-/* ********************************************************************************************
-*
-*
-******************************************************************************************** */
-//async function loadmodel_facelm() {
-//  console.log("in")
-//}
-//async function predict_facelm() {
-//  console.log("in")
-//}
 
 /* ********************************************************************************************
 *
@@ -485,12 +480,36 @@ function hand_pos(finger_angle) {
 onBeforeMount(() => {
   //loadModel()
 })
-onMounted(() => {
-    
+onMounted(async () => {
+
 })
 onBeforeUnmount(() => {
   //console.log("app.onMounted")
 })
+const handleInputChange = () => {
+  if(srcImageFrame.value == 'cam') {
+    navigator.mediaDevices.getUserMedia({ video: true })
+    .then(() => {
+      return navigator.mediaDevices.enumerateDevices();
+    })
+    .then(devices => {
+      const cameras = devices.filter(device => device.kind === 'videoinput');
+      if(cameras.length > 0) {
+        CameraList.value = []
+      }
+      cameras.forEach((camera, index) => {
+        let label = `Camera ${index + 1}: ${camera.label || "noname"}`;
+        console.log(label);
+        CameraList.value.push({label: label, value: index+1, deviceId: camera.deviceId})
+      });
+      close_camera();
+    })
+    .catch(error => {
+      console.error('Error accessing media devices:', error);
+    });
+
+  }
+}
 
 async function timer_camera(cam) {
   if(!myCam) return;
@@ -501,9 +520,18 @@ async function timer_camera(cam) {
 }
 
 function open_camera() {
-  if(myCam) return;
+  if(myCam) {
+    alert("摄影鏡頭已啟動,若要重啟請先關閉")
+    return;
+  }
+  if(selectedCameraIdx.value <=0 || selectedCameraIdx.value > CameraList.value.length) {
+    alert("請重新選擇摄影鏡頭")
+    return;
+  }
 
-  MyCamera.setupCamera().then(function(cam){
+  let camIdx = parseInt(selectedCameraIdx.value) -1
+  console.log("open_camera:", camIdx)
+  MyCamera.setupCamera(null, CameraList.value[camIdx].deviceId).then(function(cam) {
     myCam = cam;
     setTimeout(timer_camera, 100, myCam)
   }).catch(function(err){
@@ -515,6 +543,7 @@ function close_camera() {
   if(!myCam) return;
   MyCamera.close_stream(myCam)
   myCam = undefined;
+  refVideo.value.srcObject = null;
 }
 
 class MyCamera {
@@ -524,6 +553,19 @@ class MyCamera {
     this.canvas = refCanvas.value;
     this.ctx = this.canvas.getContext('2d');
     this.stream = undefined;
+  }
+
+  static async list_camera_devices() {
+    try {
+      await navigator.mediaDevices.getUserMedia({ video: true });
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter(device => device.kind === 'videoinput');
+      return cameras || []
+    } 
+    catch (error) {
+      console.error('Error accessing media devices:', error);
+      return []
+    }
   }
 
   static get_camparams(type) {
@@ -555,12 +597,12 @@ class MyCamera {
     // 將所有的 MediaStreamTrack 都關閉
     cam.stream.getTracks().forEach(function(track) {
       track.stop();
+      console.log("close_stream: track.stop") 
     })
     cam.stream = undefined;
-    //cam.video.srcObject = null; 
   }
 
-  static async setupCamera(cameraParam) {
+  static async setupCamera(cameraParam, deviceId) {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error(
           'Browser API navigator.mediaDevices.getUserMedia not available');
@@ -575,8 +617,9 @@ class MyCamera {
     const videoConfig = {
       'audio': false,
       'video': {
-        facingMode: 'user',
-        // Only setting the video to a specified size for large screen, on
+        video: { deviceId: { exact: deviceId } },
+        // facingMode: 'user',
+        // Performance issue: Only setting the video to a specified size for large screen, on
         // mobile devices accept the default size.
         width: MyCamera.isMobile() ? params.VIDEO_SIZE['360 X 270'].width : _size.width,
         height: MyCamera.isMobile() ? params.VIDEO_SIZE['360 X 270'].height : _size.height,
