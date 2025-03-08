@@ -20,27 +20,6 @@ section {
   transition: opacity 500ms ease-in-out;
 }
 
-.videoView,
-.detectOnClick {
-  position: relative;
-  float: left;
-  width: 48%;
-  margin: 2% 1%;
-  cursor: pointer;
-}
-
-.videoView p,
-.detectOnClick p {
-  position: absolute;
-  padding: 5px;
-  background-color: #007f8b;
-  color: #fff;
-  border: 1px dashed rgba(255, 255, 255, 0.7);
-  z-index: 2;
-  font-size: 12px;
-  margin: 0;
-}
-
 .canvas {
   z-index: 1;
   position: absolute;

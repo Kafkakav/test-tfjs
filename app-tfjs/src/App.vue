@@ -4,12 +4,12 @@
     <img alt="kafka logo" class="logo" src="@/assets/kafka_avatar.jpg" width="90" height="90" />
     <div class="hitem">Tensorflow.js Demo</div>
     <div class="mb-4">
-      <el-button type="primary" @click="handleClick('face')">人臉辨識 </el-button>
-      <el-button type="primary" @click="handleClick('facemesh')">人臉網格 </el-button>
+      <el-button type="info" @click="handleClick('face')">人臉辨識 </el-button>
+      <el-button type="info" @click="handleClick('facemesh')">人臉網格 </el-button>
       <el-button type="info" @click="handleClick('hands')">手掌辨識 </el-button>
-      <el-button type="warning" @click="handleClick('pose')">人體姿勢 </el-button>
-      <el-button type="success" @click="handleClick('holistic ')">整體辨識 </el-button>
-      <el-button type="success" @click="handleClick('others')">其它應用 </el-button>
+      <el-button type="info" @click="handleClick('pose')">人體姿勢 </el-button>
+      <el-button type="info" @click="handleClick('holistic ')">整體辨識 </el-button>
+      <el-button type="primary" @click="handleClick('others')">其它應用 </el-button>
     </div>
   </div>
 
