@@ -15,23 +15,6 @@ video {
   -moz-transform: rotateY(180deg);
 }
 
-section {
-  opacity: 1;
-  transition: opacity 500ms ease-in-out;
-}
-
-.canvas {
-  z-index: 1;
-  position: absolute;
-  pointer-events: none;
-}
-
-.output_canvas {
-  transform: rotateY(180deg);
-  -webkit-transform: rotateY(180deg);
-  -moz-transform: rotateY(180deg);
-}
-
 .header {
     display: flex;
     flex-direction: row;

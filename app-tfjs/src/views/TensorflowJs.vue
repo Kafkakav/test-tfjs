@@ -98,7 +98,6 @@ import { ElMessage } from 'element-plus'
 
 let modelMobileNet = null;
 let modelHandDetector = null;
-let modelPoseDetector  = null;
 let modelCocoSSD = null;
 //let modelFaceLMD = null; // Face Landmark Detection
 const modelOptions = ref([
