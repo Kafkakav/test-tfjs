@@ -10,6 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.1/control_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.2/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.2/pose.js" crossorigin="anonymous"></script>
+  <script src="./webcam-easy.js"></script>
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="./html_css.css" />
   <script src="./html_js.js"></script>
@@ -34,6 +35,7 @@
       <div class="col-md-6">
         <button type="button" class="btn btn-success btn-lg" style="padding: 10px;" onClick="vidStart()">啟動</button>
         <button type="button" class="btn btn-success btn-lg" style="padding: 10px;" onClick="vidStop()">停止</button>
+        <button type="button" class="btn btn-success btn-lg" style="padding: 10px;" onClick="vidSwitch()">切換鏡頭</button>
       </div>
     </div>
 
@@ -44,7 +46,7 @@
             <h5 class="card-title mb-0">Camera Input</h5>
           </div>
           <div class="card-body" style="padding: 0;">
-            <video id="input_video1" width="480px" height="400px" style="padding: 0;"></video>
+            <video id="input_video1" style="object-fit: cover;"></video>
           </div>
         </div>
       </div> <!-- /col -->
@@ -53,8 +55,20 @@
           <div class="card-title-custom">
             <h5 class="card-title mb-0">Mediapipe Detection Output</h5>
           </div>
-          <div class="card-body">
-            <canvas id="output1" width="480px" height="400px"></canvas>
+          <div class="card-body" style="padding:0;">
+            <canvas id="output1" style="width:100%;height:auto;"></canvas>
+          </div>
+        </div>
+      </div> <!-- /col -->
+      
+      <div class="col-md-12">
+        <div class="card" style="min-width: 20rem;">
+          <div class="card-title-custom">
+            <h5 class="card-title mb-0">Camera Info.</h5>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <textarea id="myTextarea" rows="12" class="full-width-textarea">
+            </textarea>
           </div>
         </div>
       </div> <!-- /col -->
@@ -71,8 +85,21 @@
 const video1 = document.getElementById('input_video1');
 const out1 = document.getElementById('output1');
 const controlsElement1 = document.getElementById('control1');
+const myTextLog = document.getElementById('myTextarea');
 const canvasCtx1 = out1.getContext('2d');
 const fpsControl = new FPS();
+const snapSound = null; //document.getElementById('snapSound');
+const camOption = {
+  width: (output1.width || 640), 
+  height: 480 
+};
+const targetFPS = 30;
+var videoRatio = video1.width / video1.height;
+var canvasRatio = out1.width / out1.height;
+var vidoeInfo;
+var myCamara = null;
+var webcam = new Webcam(video1, 'user', out1, snapSound);
+var lastTime = 0;
 
 function zColor(data) {
   const z = clamp(data.from.z + 0.5, 0, 1);
@@ -80,10 +107,11 @@ function zColor(data) {
 }
 
 function onResultsPose(results) {
-  document.body.classList.add('loaded');
+  //document.body.classList.add('loaded');
   fpsControl.tick();
-
-  canvasCtx1.save();
+  if(!results.poseLandmarks)
+    return;
+  //canvasCtx1.save();
   canvasCtx1.clearRect(0, 0, out1.width, out1.height);
   canvasCtx1.drawImage(
       results.image, 0, 0, out1.width, out1.height);
@@ -121,7 +149,7 @@ function onResultsPose(results) {
       Object.values(POSE_LANDMARKS_NEUTRAL)
           .map(index => results.poseLandmarks[index]),
       {color: zColor, fillColor: '#AAAAAA'});
-  canvasCtx1.restore();
+  //canvasCtx1.restore();
 }
 
 const pose = new Pose({locateFile: (file) => {
@@ -129,22 +157,88 @@ const pose = new Pose({locateFile: (file) => {
 }});
 pose.onResults(onResultsPose);
 
-var myCamara = null;
 async function video_frame_cb(video1) {
+  // make sure video ready
+  if (video1.readyState < 2) {
+    await new Promise((resolve) => {
+      video1.onloadeddata = () => {
+        resolve(video1);
+      };
+    });
+  }
+    
+  let srcX, srcY, srcWidth, srcHeight;
+
+  if (videoRatio > canvasRatio) {
+    srcHeight = vidoeInfo.height;
+    srcWidth = srcHeight * canvasRatio;
+    srcX = (vidoeInfo.width - srcWidth) / 2;
+    srcY = 0;
+  } else {
+    srcWidth = vidoeInfo.width;
+    srcHeight = srcWidth / canvasRatio;
+    srcX = 0;
+    srcY = (vidoeInfo.height - srcHeight) / 2;
+  }
+
+  canvasCtx1.drawImage(
+    video1,
+    srcX, srcY, srcWidth, srcHeight,  // 原始尺寸crop
+    0, 0, out1.width, out1.height     // 縮小後的尺寸
+  );
+
   await pose.send({image: video1});
 }
-
+async function drawVideoFrame(timestamp) {
+  if(!video1.srcObject) return;
+  
+  if (!lastTime || timestamp - lastTime >= 1000 / targetFPS) {
+    await video_frame_cb(video1);
+    lastTime = timestamp;
+  }
+  requestAnimationFrame(drawVideoFrame);
+}
 function vidStart() {
-  if(myCamara) return;
-  myCamara = startCamera(video1, video_frame_cb)
-  myCamara.start();
+  webcam.start()
+    .then(result => {
+      const deviceId = webcam.selectedDeviceId;
+      const vidInfo = webcam.vidoeTrackInfo;
+      let active;
+      console.log("webcam started", result);
+      myTextLog.value = `mode: ${result}\nid: ${deviceId}\n`;
+      myTextLog.value += `vidoeInfo: ${vidInfo.width}x${vidInfo.height}\n`;
+      myTextLog.value += `videoIn: ${video1.videoWidth}x${video1.videoHeight}\n`;
+      webcam.webcamList.forEach(mediaDevice => {
+        active = deviceId == mediaDevice.deviceId? "active":""
+        myTextLog.value += `cam: ${mediaDevice.label} => ${active}\n`;
+      });
+      vidoeInfo = vidInfo;
+      videoRatio = vidInfo.width / vidInfo.height;
+      canvasRatio = out1.width / out1.height;
+      
+      //out1.width = video1.width;
+      //out1.height = video1.height;
+      out1.style.width = '100%';
+      out1.style.height = 'auto';
+      
+      requestAnimationFrame(drawVideoFrame);
+    })
+    .catch(err => {
+      console.log(err);
+    });
 }
 function vidStop() {
-  if(!myCamara) return;
-  stopCamera(myCamara)
-  myCamara = null;
+  webcam.stop(true);
 }
-
+function vidSwitch() {
+  vidStop();
+  let facingMode = webcam.facingMode;
+  facingMode = facingMode === 'user' ? 'environment' : 'user';
+  console.log("set facingMode:", facingMode);
+  delete webcam;
+  webcam = new Webcam(video1, facingMode, out1, snapSound);
+  vidStart();
+}
 new ControlPanel(controlsElement1, {
       selfieMode: true,
       upperBodyOnly: false,
@@ -175,5 +269,29 @@ new ControlPanel(controlsElement1, {
       video1.classList.toggle('selfie', options.selfieMode);
       pose.setOptions(options);
     });
+function vidInit() {
+  updateCanvasSize(out1);
+  myTextLog.value = `canvas: ${output1.width} x ${output1.height}\n`;
+  myTextLog.value += `screenOrientation: ${screenOrientation()}\n`;
+  if(screenOrientation() == 'portrait') {
+    camOption.height = output1.width * 1.4; // 16:10;
+  }
+  else {
+    camOption.height = output1.width * 0.425; // 16:10
+  }
+
+  video1.width = camOption.width;
+  video1.height = camOption.height;
+  video1.style.width = `${camOption.width}px`;
+  video1.style.height = `${camOption.height}px`;
+  
+  out1.width = camOption.width;
+  out1.height = camOption.height;
+  out1.style.width = `${camOption.width}px`;
+  out1.style.height = `${camOption.height}px`;
+}
+window.addEventListener('load', function func() {
+  vidInit();
+});
 </script>
 </html>
